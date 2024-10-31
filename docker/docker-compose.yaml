@@ -1,0 +1,45 @@
+services:
+
+  postgres:
+    image: postgres:16
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "postgres"
+
+  service:
+    build: https://github.com/izertis/identfy-entity-service.git
+    ports:
+      - "8001:8080"
+    environment:
+      - BACKEND_URL=${PUBLIC_URL}
+      # Default user for service. Change on production environment
+      - BACKEND_USER=service
+      - BACKEND_PASS=identfy1234
+
+  backend:
+    build: https://github.com/izertis/identfy-entity-backend.git
+    environment:
+      BACKEND_DOMAIN: ${PUBLIC_URL}
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+      VC_SERVICE_URL: http://service:8080/api
+      # Example Issuer configuration. Change on production environment
+      DID: did:ebsi:zzpYmwyZhHEyDUgKKXmEjeW
+      PRIVATE_KEY: d=1xV_KMmkExfsv5onKJBLNHYP2z-HEWBSBV205uVFhWU, x=ckG4pp0LYzoLlwH2nOlfSDQBB_QWUfY_FtEpZXyPSk8, y=go7hlsEYr3xrBReOOGrU_VWFIRstrWqLTVgkuBPhEAw, alg=ES256, crv=P-256, ext=True, kid=WwrwmJ5N_NiOXCZVt4yEIZBCWaBqCZIhFy4NXlV7tps, kty=EC
+      PUBLIC_KEY: x=ckG4pp0LYzoLlwH2nOlfSDQBB_QWUfY_FtEpZXyPSk8, y=go7hlsEYr3xrBReOOGrU_VWFIRstrWqLTVgkuBPhEAw, alg=ES256, crv=P-256, ext=True, kid=WwrwmJ5N_NiOXCZVt4yEIZBCWaBqCZIhFy4NXlV7tps, kty=EC
+      # Only for testing purpouse. Change on production environment
+      DEVELOPER_MOCKUP_ENTITIES: True
+      # Default value. Change on production environment
+      SECRET_KEY: "CHANGE_TO_A_RAMDOM_SECRET_VALUE_FOR_PRODUCTION"
+    ports:
+      - 8000:8000
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider ${PUBLIC_URL}/swagger/
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - postgres
+      - service
