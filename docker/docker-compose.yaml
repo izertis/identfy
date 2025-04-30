@@ -14,25 +14,26 @@ services:
     ports:
       - "8001:8080"
     environment:
+      - NODE_ENV=conformance # It can also be changed to "production" environment, which uses EBSI's pilot environment
       - BACKEND_URL=${PUBLIC_URL}
       # Default user for service. Change on production environment
       - BACKEND_USER=service
-      - BACKEND_PASS=identfy1234
+      - BACKEND_PASS=service
 
   backend:
     build: https://github.com/izertis/identfy-entity-backend.git
     environment:
       BACKEND_DOMAIN: ${PUBLIC_URL}
+      ALLOWED_HOSTS: "*"
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
       VC_SERVICE_URL: http://service:8080/api
       # Example Issuer configuration. Change on production environment
-      DID: did:ebsi:zzpYmwyZhHEyDUgKKXmEjeW
-      PRIVATE_KEY: d=1xV_KMmkExfsv5onKJBLNHYP2z-HEWBSBV205uVFhWU, x=ckG4pp0LYzoLlwH2nOlfSDQBB_QWUfY_FtEpZXyPSk8, y=go7hlsEYr3xrBReOOGrU_VWFIRstrWqLTVgkuBPhEAw, alg=ES256, crv=P-256, ext=True, kid=WwrwmJ5N_NiOXCZVt4yEIZBCWaBqCZIhFy4NXlV7tps, kty=EC
-      PUBLIC_KEY: x=ckG4pp0LYzoLlwH2nOlfSDQBB_QWUfY_FtEpZXyPSk8, y=go7hlsEYr3xrBReOOGrU_VWFIRstrWqLTVgkuBPhEAw, alg=ES256, crv=P-256, ext=True, kid=WwrwmJ5N_NiOXCZVt4yEIZBCWaBqCZIhFy4NXlV7tps, kty=EC
+      DID: ${DID}
       # Only for testing purpouse. Change on production environment
       DEVELOPER_MOCKUP_ENTITIES: True
+      EBSI_DIDR_URL: "https://api-conformance.ebsi.eu/did-registry/v5/identifiers"
+      EBSI_TIR_URL: "https://api-conformance.ebsi.eu/trusted-issuers-registry/v5/issuers"
       # Default value. Change on production environment
-      SECRET_KEY: "CHANGE_TO_A_RAMDOM_SECRET_VALUE_FOR_PRODUCTION"
     ports:
       - 8000:8000
     healthcheck:
