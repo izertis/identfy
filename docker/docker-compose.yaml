@@ -1,4 +1,6 @@
 services:
+  redis:
+    image: redis:7
 
   postgres:
     image: postgres:16
@@ -14,14 +16,16 @@ services:
     ports:
       - "8001:8080"
     environment:
-      - NODE_ENV=conformance # It can also be changed to "production" environment, which uses EBSI's pilot environment
+      - NODE_ENV=production # It can also be changed to "conformance" environment, which uses EBSI's conformance environment
       - BACKEND_URL=${PUBLIC_URL}
       # Default user for service. Change on production environment
       - BACKEND_USER=service
       - BACKEND_PASS=service
 
   backend:
-    build: https://github.com/izertis/identfy-entity-backend.git
+    build:
+      context: https://github.com/izertis/identfy-entity-backend.git
+    image: identfy-backend
     environment:
       BACKEND_DOMAIN: ${PUBLIC_URL}
       ALLOWED_HOSTS: "*"
@@ -31,11 +35,12 @@ services:
       DID: ${DID}
       # Only for testing purpouse. Change on production environment
       DEVELOPER_MOCKUP_ENTITIES: True
-      EBSI_DIDR_URL: "https://api-conformance.ebsi.eu/did-registry/v5/identifiers"
-      EBSI_TIR_URL: "https://api-conformance.ebsi.eu/trusted-issuers-registry/v5/issuers"
+      EBSI_DIDR_URL: "https://api-pilot.ebsi.eu/did-registry/v5/identifiers" # For conformance environment it needs to be changed
+      EBSI_TIR_URL: "https://api-pilot.ebsi.eu/trusted-issuers-registry/v5/issuers" # For conformance environment it needs to be changed
       # Default value. Change on production environment
     ports:
       - 8000:8000
+    working_dir: /code
     healthcheck:
       test: wget --no-verbose --tries=1 --spider ${PUBLIC_URL}/swagger/
       interval: 5s
@@ -44,3 +49,27 @@ services:
     depends_on:
       - postgres
       - service
+      - redis
+
+  celery:
+    image: identfy-backend
+    command: celery -A project worker -l info -E --concurrency=2
+    environment:
+      - REDIS_HOST=redis
+      - BACKEND_DOMAIN=${PUBLIC_URL}
+      - VC_SERVICE_URL=http://service:8080/api
+      - DID=${DID}
+      - REDIS_BROKER_URL=redis://redis:6379/0
+      - DEBUG=1
+    working_dir: /code
+    depends_on:
+      - redis
+      - postgres
+
+  flower:
+    image: mher/flower
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=8888
+    ports:
+      - 8888:8888
